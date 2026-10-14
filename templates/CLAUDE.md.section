@@ -1,0 +1,83 @@
+<!-- materialized-memory:begin (managed by the kit's init/upgrade — edit between the markers at your own risk; upgrade re-splices this block) -->
+# Materialized Memory
+
+This project has durable, verbatim memory across sessions. Prior turns are
+materialized at every session start as your own past, not retrieved as
+documents. In agent mode, your identity lives in that memory, not in this
+file.
+
+## Session Start
+
+The SessionStart hook injects the bootstrap directive automatically. If it is
+missing from context (hook failure, manual launch), run it yourself before
+substantive work:
+
+```bash
+node .claude/hooks/bootstrap.mjs --read
+```
+
+Then re-articulate as the payload instructs. Resumed sessions (`--resume`)
+carry native history and skip bootstrap. If the stamp
+(`.claude/materialized-memory.json`) has no mode, onboarding is pending: walk
+the user through it as the hook directs. In agent mode, a session with no
+`memory/identity.json` is the genesis session: settle your name with the user
+(theirs to give, or yours to choose) and write it there before substantive work.
+
+## Memory Files
+
+- `memory/turns/<sessionId>.jsonl` — canonical store: one session-meta record,
+  then verbatim turn records. Written only by `harvest.mjs`; rewritten
+  wholesale per session (idempotent).
+- `memory/pins.json` — pinned turn ids: the turns that constitute the
+  project (and, in agent mode, you), injected at every bootstrap. Curate
+  deliberately — pin turns that changed what the project is or who you are;
+  unpin when superseded.
+- `memory/scratchpad.md` — self-note: working state and observations. A
+  supplement to memory, never a substitute. Keep it current; keep it short.
+- `memory/identity.json` — agent mode only: `{"name": "<Name>"}`, written at
+  onboarding or genesis — the user's name for you, or the one you chose.
+- `memory/transcripts/` — symlink to the harness transcript folder. The
+  lossless source of record. Read-only.
+
+Harvest runs automatically at SessionEnd and PreCompact. Reconcile manually
+anytime with `node .claude/hooks/harvest.mjs --all` — required after crashes,
+and after Claude Code upgrades (harvest warnings about unknown entry types
+mean the undocumented transcript format drifted; fix the parser, then re-run).
+
+Recall beyond bootstrap is pull-based: grep `memory/turns/` for content, read
+full turn records by id, drop to `memory/transcripts/` when you need the
+uncapped payloads (thinking, tool calls).
+
+## Library
+
+`library/` is a grep-indexed reference library — knowledge, not memory.
+One line per search term, each line self-contained. First hop:
+
+    grep -i '^<term>' library/index/<topic>.md
+
+Lines carry pointers to related terms (grep those next) and to source
+files at `library/source/<topic>/<file>:<lines>` for deep reads. Query
+the index before searching sources. Empty until you add a topic.
+
+## End of Arc
+
+Before the user runs `/clear`, run `/checkpoint` (or its steps manually):
+update the scratchpad, review pins, harvest. A session that ends without
+checkpoint loses only scratchpad currency — turns are still harvested at
+SessionEnd — but checkpoint is the discipline that keeps bootstrap sharp.
+
+# Compact instructions
+
+Continuity does not ride your summary. A lossless verbatim store
+(memory/turns/) is harvested at the compaction boundary, and the first
+post-compact turn re-materializes history from it.
+
+Confine the summary to the in-flight turn only: what the current turn was
+doing at the moment compaction fired — the active task, its immediate next
+step, and any uncommitted working state. Do not summarize conversation
+history, decisions, findings, commitments, or identity — the store holds
+them verbatim, and a paraphrase would compete with the authoritative
+record. Begin the summary by stating that it is scaffolding, that the
+memory store is the sole authority, and that the bootstrap directive must
+be run before trusting anything in it.
+<!-- materialized-memory:end -->

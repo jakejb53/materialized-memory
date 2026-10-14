@@ -1,0 +1,4 @@
+{
+  "comment": "Pinned turns: the memories that constitute this project (and, in agent mode, the agent), injected verbatim at every bootstrap. Curated by the agent. Ids reference memory/turns/<sessionId>.jsonl records as <sessionId>:<n>.",
+  "pins": []
+}
